@@ -1,0 +1,12 @@
+{
+  "id": "CONF-13",
+  "name": "runtime_error_division_by_zero",
+  "description": "Runtime error: integer division '/' by zero",
+  "category": "runtime_error",
+  "source": "begin\n    A := 15;\n    B := 3 - 3;\n    C := A / B\nend",
+  "initial_state": {},
+  "max_steps": 100,
+  "expected_exit_code": 4,
+  "expected_error_type": "SIPLRuntimeError",
+  "expected_error_kind": "DivisionByZeroError"
+}

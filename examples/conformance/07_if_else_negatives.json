@@ -1,0 +1,13 @@
+{
+  "id": "CONF-07",
+  "name": "if_else_branching_and_negatives",
+  "description": "Conditional branching with negative integer constants and '!' negation alias",
+  "category": "valid_execution",
+  "source": "begin\n    if !(X > -5) then\n        Y := -10\n    else\n        Y := 10\nend",
+  "initial_state": {"X": -8},
+  "max_steps": 100,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "IF(S^1(neg, S^2(gr, 'X⇒, -\u03045\u0304)), AS^Y(-\u03041\u03040\u0304), AS^Y(1\u03040\u0304))",
+  "expected_final_state": {"X": -8, "Y": -10},
+  "expected_ast_root_body_type": "IfStmt"
+}

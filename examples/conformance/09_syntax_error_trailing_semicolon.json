@@ -1,0 +1,11 @@
+{
+  "id": "CONF-09",
+  "name": "syntax_error_trailing_semicolon",
+  "description": "Syntax error: semicolon is a binary composition operator, not a statement terminator",
+  "category": "syntax_error",
+  "source": "begin\n    X := 1;\n    Y := 2;\nend",
+  "expected_exit_code": 3,
+  "expected_error_type": "SIPLSyntaxError",
+  "expected_error_kind": "UnexpectedCharacter",
+  "expected_line": 4
+}

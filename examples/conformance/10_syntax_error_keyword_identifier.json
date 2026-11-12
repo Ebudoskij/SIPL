@@ -1,0 +1,11 @@
+{
+  "id": "CONF-10",
+  "name": "syntax_error_keyword_identifier",
+  "description": "Syntax error: reserved keyword 'while' used as variable identifier",
+  "category": "syntax_error",
+  "source": "begin\n    while := 5\nend",
+  "expected_exit_code": 3,
+  "expected_error_type": "SIPLSyntaxError",
+  "expected_error_kind": "UnexpectedCharacter",
+  "expected_line": 2
+}

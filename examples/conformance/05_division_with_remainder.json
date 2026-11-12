@@ -1,0 +1,13 @@
+{
+  "id": "CONF-05",
+  "name": "division_with_remainder",
+  "description": "Integer quotient and remainder via repeated subtraction",
+  "category": "valid_execution",
+  "source": "begin\n    Q := 0;\n    R := M;\n    while (R > N) ∨ (R = N) do\n        begin\n            R := R - N;\n            Q := Q + 1\n        end\nend",
+  "initial_state": {"M": 17, "N": 5},
+  "max_steps": 500,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "AS^Q(0̄) · AS^R('M⇒) · WH(S^2(or, S^2(gr, 'R⇒, 'N⇒), S^2(eq, 'R⇒, 'N⇒)), AS^R(S^2(sub, 'R⇒, 'N⇒)) · AS^Q(S^2(add, 'Q⇒, 1̄)))",
+  "expected_final_state": {"M": 17, "N": 5, "Q": 3, "R": 2},
+  "expected_ast_root_body_type": "SeqStmt"
+}

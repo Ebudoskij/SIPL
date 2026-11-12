@@ -1,0 +1,12 @@
+{
+  "id": "CONF-14",
+  "name": "runtime_error_step_limit_exceeded",
+  "description": "Runtime error: non-terminating loop safely halted by max_steps limit",
+  "category": "runtime_error",
+  "source": "begin\n    X := 1;\n    while X > 0 do\n        X := X + 1\nend",
+  "initial_state": {},
+  "max_steps": 20,
+  "expected_exit_code": 4,
+  "expected_error_type": "SIPLRuntimeError",
+  "expected_error_kind": "StepLimitExceededError"
+}
