@@ -1,4 +1,4 @@
-"""SIPL AST Interpreter with step limit control (CORE-03)."""
+"""SIPL AST Interpreter with step limit control and event tracing (CORE-03, CORE-04)."""
 
 from __future__ import annotations
 
@@ -26,8 +26,13 @@ from sipl.ast import (
     Variable,
     WhileStmt,
 )
-from sipl.interpreter.errors import DivisionByZeroError, StepLimitExceededError
+from sipl.interpreter.errors import (
+    DivisionByZeroError,
+    SIPLRuntimeError,
+    StepLimitExceededError,
+)
 from sipl.interpreter.state import ExecutionState
+from sipl.interpreter.trace import ExecutionTrace, TraceCollector, TraceEventKind
 from sipl.parser import parse_program
 
 DEFAULT_MAX_STEPS: int = 10_000
@@ -49,13 +54,14 @@ class ExecutionResult:
 
 
 class Interpreter:
-    """Executes a typed SIPL AST on an ExecutionState with step-limit protection."""
+    """Executes a typed SIPL AST on an ExecutionState with step-limit protection and tracing."""
 
     def __init__(self, max_steps: int = DEFAULT_MAX_STEPS) -> None:
         if max_steps < 1:
             raise ValueError(f"max_steps must be >= 1, got {max_steps}")
         self.max_steps = max_steps
         self._steps: int = 0
+        self._collector: TraceCollector | None = None
 
     @property
     def steps_executed(self) -> int:
@@ -74,10 +80,80 @@ class Interpreter:
             else ExecutionState(initial_state)
         )
         self._steps = 0
+        self._collector = None
         self._exec_stmt(program.body, state)
         return ExecutionResult(
             final_state=state.snapshot(),
             steps_executed=self._steps,
+        )
+
+    def trace(
+        self,
+        program: Program,
+        initial_state: Mapping[str, int] | ExecutionState | None = None,
+        *,
+        capture_errors: bool = False,
+    ) -> ExecutionTrace:
+        """Execute `program` while collecting a full deterministic `ExecutionTrace`."""
+        state = (
+            initial_state.copy()
+            if isinstance(initial_state, ExecutionState)
+            else ExecutionState(initial_state)
+        )
+        init_snapshot = state.snapshot()
+        self._steps = 0
+        collector = TraceCollector()
+        self._collector = collector
+
+        try:
+            self._exec_stmt(program.body, state)
+        except SIPLRuntimeError as exc:
+            final_snap = state.snapshot()
+            collector.emit(
+                step=self._steps,
+                kind=TraceEventKind.PROGRAM_TERMINATED,
+                statement_type="Program",
+                span=exc.span or program.span,
+                state=final_snap,
+                details={
+                    "status": "error",
+                    "steps_executed": self._steps,
+                    "error_kind": exc.error_kind,
+                    "message": exc.message,
+                },
+            )
+            self._collector = None
+            if not capture_errors:
+                raise
+            return ExecutionTrace(
+                initial_state=init_snapshot,
+                final_state=final_snap,
+                steps_executed=self._steps,
+                events=collector.events,
+                terminated_normally=False,
+                error=exc.to_dict(),
+            )
+
+        final_snap = state.snapshot()
+        collector.emit(
+            step=self._steps,
+            kind=TraceEventKind.PROGRAM_TERMINATED,
+            statement_type="Program",
+            span=program.span,
+            state=final_snap,
+            details={
+                "status": "completed",
+                "steps_executed": self._steps,
+            },
+        )
+        self._collector = None
+        return ExecutionTrace(
+            initial_state=init_snapshot,
+            final_state=final_snap,
+            steps_executed=self._steps,
+            events=collector.events,
+            terminated_normally=True,
+            error=None,
         )
 
     def eval_expr(self, expr: Expr, state: ExecutionState) -> int:
@@ -138,41 +214,171 @@ class Interpreter:
 
     def _exec_stmt(self, stmt: Stmt, state: ExecutionState) -> None:
         """Execute a statement node `stmt` mutating `state` in place (`sem<S>(d)`)."""
+        collector = self._collector
+
         if isinstance(stmt, SeqStmt):
             self._exec_stmt(stmt.first, state)
             self._exec_stmt(stmt.second, state)
             return
 
         if isinstance(stmt, BlockStmt):
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.BEFORE_STATEMENT,
+                    statement_type="BlockStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                )
             self._exec_stmt(stmt.body, state)
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.AFTER_STATEMENT,
+                    statement_type="BlockStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                )
             return
 
         if isinstance(stmt, SkipStmt):
             self._tick_step(stmt, state)
+            snap = state.snapshot()
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.BEFORE_STATEMENT,
+                    statement_type="SkipStmt",
+                    span=stmt.span,
+                    state=snap,
+                )
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.AFTER_STATEMENT,
+                    statement_type="SkipStmt",
+                    span=stmt.span,
+                    state=snap,
+                )
             return
 
         if isinstance(stmt, AssignStmt):
             self._tick_step(stmt, state)
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.BEFORE_STATEMENT,
+                    statement_type="AssignStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                    details={"target": stmt.target},
+                )
+            old_val = state.get(stmt.target) if stmt.target in state else None
             val = self.eval_expr(stmt.value, state)
             state.set(stmt.target, val)
+            if collector is not None:
+                new_snap = state.snapshot()
+                delta = {stmt.target: val}
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.VARIABLE_CHANGED,
+                    statement_type="AssignStmt",
+                    span=stmt.span,
+                    state=new_snap,
+                    state_delta=delta,
+                    details={
+                        "variable": stmt.target,
+                        "old_value": old_val,
+                        "new_value": val,
+                    },
+                )
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.AFTER_STATEMENT,
+                    statement_type="AssignStmt",
+                    span=stmt.span,
+                    state=new_snap,
+                    state_delta=delta,
+                    details={"target": stmt.target},
+                )
             return
 
         if isinstance(stmt, IfStmt):
             self._tick_step(stmt, state)
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.BEFORE_STATEMENT,
+                    statement_type="IfStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                )
             cond_val = self.eval_cond(stmt.condition, state)
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.CONDITION_EVALUATED,
+                    statement_type="IfStmt",
+                    span=stmt.condition.span,
+                    state=state.snapshot(),
+                    details={
+                        "construct": "if",
+                        "result": cond_val,
+                        "branch": "then" if cond_val else "else",
+                    },
+                )
             if cond_val:
                 self._exec_stmt(stmt.then_branch, state)
             else:
                 self._exec_stmt(stmt.else_branch, state)
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.AFTER_STATEMENT,
+                    statement_type="IfStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                )
             return
 
         if isinstance(stmt, WhileStmt):
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.BEFORE_STATEMENT,
+                    statement_type="WhileStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                )
+            iteration = 0
             while True:
                 self._tick_step(stmt, state)
                 cond_val = self.eval_cond(stmt.condition, state)
+                if collector is not None:
+                    collector.emit(
+                        step=self._steps,
+                        kind=TraceEventKind.CONDITION_EVALUATED,
+                        statement_type="WhileStmt",
+                        span=stmt.condition.span,
+                        state=state.snapshot(),
+                        details={
+                            "construct": "while",
+                            "result": cond_val,
+                            "iteration": iteration,
+                        },
+                    )
                 if not cond_val:
                     break
+                iteration += 1
                 self._exec_stmt(stmt.body, state)
+            if collector is not None:
+                collector.emit(
+                    step=self._steps,
+                    kind=TraceEventKind.AFTER_STATEMENT,
+                    statement_type="WhileStmt",
+                    span=stmt.span,
+                    state=state.snapshot(),
+                    details={"iterations": iteration},
+                )
             return
 
         raise TypeError(f"Unsupported statement node: {type(stmt).__name__}")
@@ -198,3 +404,36 @@ def run_source(
     """Parse and execute SIPL source code in a single call."""
     program = parse_program(source)
     return execute_program(program, initial_state=initial_state, max_steps=max_steps)
+
+
+def trace_program(
+    program: Program,
+    initial_state: Mapping[str, int] | ExecutionState | None = None,
+    *,
+    max_steps: int = DEFAULT_MAX_STEPS,
+    capture_errors: bool = False,
+) -> ExecutionTrace:
+    """Execute a parsed SIPL `Program` AST and return its full `ExecutionTrace`."""
+    interpreter = Interpreter(max_steps=max_steps)
+    return interpreter.trace(
+        program,
+        initial_state=initial_state,
+        capture_errors=capture_errors,
+    )
+
+
+def trace_source(
+    source: str,
+    initial_state: Mapping[str, int] | ExecutionState | None = None,
+    *,
+    max_steps: int = DEFAULT_MAX_STEPS,
+    capture_errors: bool = False,
+) -> ExecutionTrace:
+    """Parse and trace SIPL source code in a single call."""
+    program = parse_program(source)
+    return trace_program(
+        program,
+        initial_state=initial_state,
+        max_steps=max_steps,
+        capture_errors=capture_errors,
+    )
