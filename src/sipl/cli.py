@@ -31,7 +31,11 @@ from sipl.interpreter import (
     trace_program,
 )
 from sipl.parser import SIPLSyntaxError, parse_program
-from sipl.semantics import SemanticDerivationStep, build_semantic_term
+from sipl.semantics import (
+    SemanticDerivationStep,
+    build_semantic_term,
+    evaluate_program_semantics,
+)
 
 # Stable process exit codes (CORE-05)
 EXIT_OK: int = 0
@@ -293,6 +297,32 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Output semantic term in JSON format",
     )
 
+    # 6. sem-eval (SEM-02)
+    p_sem_eval = subparsers.add_parser(
+        "sem-eval",
+        help="Evaluate a SIPL semantic term on a state with step-by-step rule explanations (SEM-02)",
+    )
+    p_sem_eval.add_argument("file", help="Path to the .sipl source file")
+    p_sem_eval.add_argument(
+        "-s",
+        "--state",
+        nargs="*",
+        default=[],
+        metavar="VAR=INT",
+        help="Initial variable state bindings (e.g. M=3 or '{\"M\": 3}')",
+    )
+    p_sem_eval.add_argument(
+        "--max-steps",
+        type=int,
+        default=DEFAULT_MAX_STEPS,
+        help=f"Maximum transition steps before aborting (default: {DEFAULT_MAX_STEPS})",
+    )
+    p_sem_eval.add_argument(
+        "--json",
+        action="store_true",
+        help="Output semantic evaluation and proof steps in JSON format",
+    )
+
     return parser
 
 
@@ -481,6 +511,39 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
             )
         else:
             print(trace_obj.format_text())
+        return EXIT_OK
+
+    if args.command == "sem-eval":
+        try:
+            sem_res = evaluate_program_semantics(
+                program,
+                initial_state=initial_state,
+                max_steps=args.max_steps,
+            )
+        except SIPLRuntimeError as rt_err:
+            if use_json:
+                _emit_json(
+                    {
+                        "status": "error",
+                        "file": args.file,
+                        "initial_state": initial_state,
+                        "error": rt_err.to_dict(),
+                    }
+                )
+            else:
+                print(str(rt_err), file=sys.stderr)
+            return EXIT_RUNTIME_ERROR
+
+        if use_json:
+            _emit_json(
+                {
+                    "status": "ok",
+                    "file": args.file,
+                    "evaluation": sem_res.to_dict(),
+                }
+            )
+        else:
+            print(sem_res.format_explanation())
         return EXIT_OK
 
     return EXIT_CLI_USAGE_ERROR
