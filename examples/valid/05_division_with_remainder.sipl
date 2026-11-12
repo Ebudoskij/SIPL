@@ -1,0 +1,9 @@
+begin
+    Q := 0;
+    R := M;
+    while (R > N) ∨ (R = N) do
+        begin
+            R := R - N;
+            Q := Q + 1
+        end
+end

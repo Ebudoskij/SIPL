@@ -1,0 +1,12 @@
+begin
+    F0 := 0;
+    F1 := 1;
+    I := 0;
+    while N > I do
+        begin
+            TEMP := F0 + F1;
+            F0 := F1;
+            F1 := TEMP;
+            I := I + 1
+        end
+end

@@ -1,0 +1,12 @@
+begin
+    if M > N then
+        if M > K then
+            MAX := M
+        else
+            MAX := K
+    else
+        if N > K then
+            MAX := N
+        else
+            MAX := K
+end

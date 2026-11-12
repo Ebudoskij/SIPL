@@ -1,0 +1,3 @@
+begin
+    X := (M > N) + 1
+end

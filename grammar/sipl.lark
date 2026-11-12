@@ -1,0 +1,95 @@
+// ============================================================================
+// Formal Grammar of SIPL (Simple Imperative Programming Language)
+// Course: Theory of Programming (M.S. Nikitchenko; O.V. Shyshatska et al.)
+// ============================================================================
+//
+// Canonical BNF rules mapping:
+//   NP1: <програма> ::= begin <оператор> end
+//   NS1: <оператор> ::= <змінна> := <вираз>
+//   NS2: <оператор> ::= <оператор> ; <оператор>
+//   NS3: <оператор> ::= if <умова> then <оператор> else <оператор>
+//   NS4: <оператор> ::= while <умова> do <оператор>
+//   NS5: <оператор> ::= begin <оператор> end
+//   NS6: <оператор> ::= skip
+//   NA1..NA6: <вираз> ::= <число> | <змінна> | a + a | a - a | a * a | (a)
+//   NB1..NB5: <умова> ::= a = a | a > a | b ∨ b | ¬b | (b)
+//
+// Documented Conservative Extensions:
+//   - Logical negation alias: "!" (alongside canonical "¬")
+//   - Logical disjunction alias: "||" (alongside canonical "∨")
+//   - Integer division operator: "/" (same precedence #1 as "*", left-assoc)
+//
+// Operator Precedence (1 = highest, 9 = lowest; all binary ops left-associative):
+//   1. "*", "/" (multiplication, integer division)
+//   2. "+", "-" (addition, subtraction)
+//   3. "=", ">" (equality, greater-than comparisons)
+//   4. "¬", "!" (logical negation)
+//   5. "∨", "||" (logical disjunction)
+//   6. ":=" (assignment)
+//   7. "while _ do _" (pre-condition loop)
+//   8. "if _ then _ else _" (conditional branch)
+//   9. ";" (sequential composition)
+// ============================================================================
+
+?start: program
+
+// NP1: Program
+program: "begin" stmt "end"
+
+// NS2: Sequential composition (precedence 9, left-associative)
+?stmt: stmt ";" single_stmt -> seq_stmt
+     | single_stmt
+
+// NS1, NS3, NS4, NS5, NS6: Single statements (precedence 6..8)
+?single_stmt: IDENT ":=" expr                           -> assign_stmt
+            | "if" cond "then" single_stmt "else" single_stmt -> if_stmt
+            | "while" cond "do" single_stmt             -> while_stmt
+            | "begin" stmt "end"                        -> block_stmt
+            | "skip"                                    -> skip_stmt
+
+// NB3: Disjunction (precedence 5, left-associative)
+?cond: cond OR_OP cond_neg -> or_cond
+     | cond_neg
+
+// NB4: Negation (precedence 4, prefix unary)
+?cond_neg: NOT_OP cond_neg -> not_cond
+         | cond_atom
+
+// NB1, NB2, NB5: Comparisons (precedence 3) and parenthesized conditions
+?cond_atom: expr EQ_OP expr  -> eq_cond
+          | expr GT_OP expr  -> gt_cond
+          | "(" cond ")"     -> paren_cond
+
+// NA3, NA4: Addition and subtraction (precedence 2, left-associative)
+?expr: expr ADD_OP expr_term -> add_expr
+     | expr SUB_OP expr_term -> sub_expr
+     | expr_term
+
+// NA5 + Extension "/": Multiplication and integer division (precedence 1, left-associative)
+?expr_term: expr_term MUL_OP expr_atom -> mul_expr
+          | expr_term DIV_OP expr_atom -> div_expr
+          | expr_atom
+
+// NA1, NA2, NA6: Numbers, variables, and parenthesized expressions
+?expr_atom: NUMBER       -> number_expr
+          | "-" NUMBER   -> neg_number_expr
+          | IDENT        -> var_expr
+          | "(" expr ")" -> paren_expr
+
+// Operators
+ADD_OP: "+"
+SUB_OP: "-"
+MUL_OP: "*"
+DIV_OP: "/"
+EQ_OP: "="
+GT_OP: ">"
+NOT_OP: "¬" | "!"
+OR_OP: "∨" | "||"
+
+// Lexical tokens: reserved keywords cannot be used as variable identifiers
+IDENT: /(?!(?:begin|end|if|then|else|while|do|skip)\b)[A-Za-z_][A-Za-z0-9_]*/
+NUMBER: /0|[1-9][0-9]*/
+
+// Whitespace is ignored
+%import common.WS
+%ignore WS

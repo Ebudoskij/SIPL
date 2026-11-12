@@ -1,0 +1,4 @@
+begin
+    while X > 0
+        X := X - 1
+end

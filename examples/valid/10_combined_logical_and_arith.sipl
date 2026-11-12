@@ -1,0 +1,6 @@
+begin
+    if ¬!(X = 0) ∨ (Y > 10) || (Z = -1) then
+        RES := (X + Y) * (Z - 2) / 3
+    else
+        skip
+end
