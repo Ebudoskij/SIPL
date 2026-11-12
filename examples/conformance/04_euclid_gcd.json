@@ -1,0 +1,13 @@
+{
+  "id": "CONF-04",
+  "name": "euclid_gcd",
+  "description": "Canonical Euclidean GCD algorithm from Practicum Example 1.2 & 2.2",
+  "category": "valid_execution",
+  "source": "begin\n    while ¬(M = N) do\n        if M > N then\n            M := M - N\n        else\n            N := N - M\nend",
+  "initial_state": {"M": 48, "N": 18},
+  "max_steps": 500,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "WH(S^1(neg, S^2(eq, 'M⇒, 'N⇒)), IF(S^2(gr, 'M⇒, 'N⇒), AS^M(S^2(sub, 'M⇒, 'N⇒)), AS^N(S^2(sub, 'N⇒, 'M⇒))))",
+  "expected_final_state": {"M": 6, "N": 6},
+  "expected_ast_root_body_type": "WhileStmt"
+}

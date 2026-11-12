@@ -1,0 +1,13 @@
+{
+  "id": "CONF-03",
+  "name": "factorial_loop",
+  "description": "Canonical factorial program from Practicum Example 1.1 & 2.1",
+  "category": "valid_execution",
+  "source": "begin\n    S := 1;\n    while M > 0 do\n        begin\n            S := S * M;\n            M := M - 1\n        end\nend",
+  "initial_state": {"M": 5},
+  "max_steps": 500,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "AS^S(1̄) · WH(S^2(gr, 'M⇒, 0̄), AS^S(S^2(mult, 'S⇒, 'M⇒)) · AS^M(S^2(sub, 'M⇒, 1̄)))",
+  "expected_final_state": {"M": 0, "S": 120},
+  "expected_ast_root_body_type": "SeqStmt"
+}

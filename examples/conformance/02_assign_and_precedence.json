@@ -1,0 +1,62 @@
+{
+  "id": "CONF-02",
+  "name": "assign_and_precedence",
+  "description": "Sequential assignments with arithmetic precedence (*, / before +, -) and left-associativity",
+  "category": "valid_execution",
+  "source": "begin\n    A := 20 - 5 - 3;\n    B := 2 + 3 * 4 / 2\nend",
+  "initial_state": {},
+  "max_steps": 100,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "AS^A(S^2(sub, S^2(sub, 2̄0̄, 5̄), 3̄)) · AS^B(S^2(add, 2̄, S^2(div, S^2(mult, 3̄, 4̄), 2̄)))",
+  "expected_final_state": {"A": 12, "B": 8},
+  "expected_ast": {
+    "type": "Program",
+    "span": {"start_line": 1, "start_column": 1, "end_line": 4, "end_column": 4},
+    "body": {
+      "type": "SeqStmt",
+      "span": {"start_line": 2, "start_column": 5, "end_line": 3, "end_column": 23},
+      "first": {
+        "type": "AssignStmt",
+        "target": "A",
+        "span": {"start_line": 2, "start_column": 5, "end_line": 2, "end_column": 20},
+        "value": {
+          "type": "BinaryArithExpr",
+          "op": "-",
+          "span": {"start_line": 2, "start_column": 10, "end_line": 2, "end_column": 20},
+          "left": {
+            "type": "BinaryArithExpr",
+            "op": "-",
+            "span": {"start_line": 2, "start_column": 10, "end_line": 2, "end_column": 16},
+            "left": {"type": "NumberLiteral", "value": 20, "span": {"start_line": 2, "start_column": 10, "end_line": 2, "end_column": 12}},
+            "right": {"type": "NumberLiteral", "value": 5, "span": {"start_line": 2, "start_column": 15, "end_line": 2, "end_column": 16}}
+          },
+          "right": {"type": "NumberLiteral", "value": 3, "span": {"start_line": 2, "start_column": 19, "end_line": 2, "end_column": 20}}
+        }
+      },
+      "second": {
+        "type": "AssignStmt",
+        "target": "B",
+        "span": {"start_line": 3, "start_column": 5, "end_line": 3, "end_column": 23},
+        "value": {
+          "type": "BinaryArithExpr",
+          "op": "+",
+          "span": {"start_line": 3, "start_column": 10, "end_line": 3, "end_column": 23},
+          "left": {"type": "NumberLiteral", "value": 2, "span": {"start_line": 3, "start_column": 10, "end_line": 3, "end_column": 11}},
+          "right": {
+            "type": "BinaryArithExpr",
+            "op": "/",
+            "span": {"start_line": 3, "start_column": 14, "end_line": 3, "end_column": 23},
+            "left": {
+              "type": "BinaryArithExpr",
+              "op": "*",
+              "span": {"start_line": 3, "start_column": 14, "end_line": 3, "end_column": 19},
+              "left": {"type": "NumberLiteral", "value": 3, "span": {"start_line": 3, "start_column": 14, "end_line": 3, "end_column": 15}},
+              "right": {"type": "NumberLiteral", "value": 4, "span": {"start_line": 3, "start_column": 18, "end_line": 3, "end_column": 19}}
+            },
+            "right": {"type": "NumberLiteral", "value": 2, "span": {"start_line": 3, "start_column": 22, "end_line": 3, "end_column": 23}}
+          }
+        }
+      }
+    }
+  }
+}

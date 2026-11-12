@@ -1,0 +1,11 @@
+{
+  "id": "CONF-11",
+  "name": "syntax_error_missing_end",
+  "description": "Syntax error: unclosed program block missing closing 'end'",
+  "category": "syntax_error",
+  "source": "begin\n    X := 42",
+  "expected_exit_code": 3,
+  "expected_error_type": "SIPLSyntaxError",
+  "expected_error_kind": "UnexpectedEOF",
+  "expected_line": 2
+}

@@ -1,0 +1,13 @@
+{
+  "id": "CONF-15",
+  "name": "nested_blocks_and_sequence",
+  "description": "Nested begin..end blocks and left-associative sequential composition",
+  "category": "valid_execution",
+  "source": "begin\n    begin\n        X := 3;\n        Y := 4\n    end;\n    Z := X * X + Y * Y\nend",
+  "initial_state": {},
+  "max_steps": 100,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "AS^X(3̄) · AS^Y(4̄) · AS^Z(S^2(add, S^2(mult, 'X⇒, 'X⇒), S^2(mult, 'Y⇒, 'Y⇒)))",
+  "expected_final_state": {"X": 3, "Y": 4, "Z": 25},
+  "expected_ast_root_body_type": "SeqStmt"
+}

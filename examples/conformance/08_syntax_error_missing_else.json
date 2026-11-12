@@ -1,0 +1,11 @@
+{
+  "id": "CONF-08",
+  "name": "syntax_error_missing_else",
+  "description": "Syntax error: 'if' statement without mandatory 'else' branch in SIPL",
+  "category": "syntax_error",
+  "source": "begin\n    if X > 0 then\n        X := 1\nend",
+  "expected_exit_code": 3,
+  "expected_error_type": "SIPLSyntaxError",
+  "expected_error_kind": "UnexpectedCharacter",
+  "expected_line": 4
+}

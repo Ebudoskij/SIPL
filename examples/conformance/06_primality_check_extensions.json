@@ -1,0 +1,13 @@
+{
+  "id": "CONF-06",
+  "name": "primality_check_extensions",
+  "description": "Primality test using documented extensions '||' and '/' (Practicum Example 1.3 & 2.3)",
+  "category": "valid_execution",
+  "source": "begin\n    I := 2;\n    R := 1;\n    while (M > I * I) || (M = I * I) do\n        if (M / I) * I = M then\n            begin\n                R := 0;\n                I := M\n            end\n        else\n            I := I + 1\nend",
+  "initial_state": {"M": 11},
+  "max_steps": 500,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "AS^I(2̄) · AS^R(1̄) · WH(S^2(or, S^2(gr, 'M⇒, S^2(mult, 'I⇒, 'I⇒)), S^2(eq, 'M⇒, S^2(mult, 'I⇒, 'I⇒))), IF(S^2(eq, S^2(mult, S^2(div, 'M⇒, 'I⇒), 'I⇒), 'M⇒), AS^R(0̄) · AS^I('M⇒), AS^I(S^2(add, 'I⇒, 1̄))))",
+  "expected_final_state": {"I": 4, "M": 11, "R": 1},
+  "expected_ast_root_body_type": "SeqStmt"
+}

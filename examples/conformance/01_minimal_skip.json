@@ -1,0 +1,20 @@
+{
+  "id": "CONF-01",
+  "name": "minimal_skip",
+  "description": "Minimal SIPL program with skip statement preserving initial state",
+  "category": "valid_execution",
+  "source": "begin\n    skip\nend",
+  "initial_state": {"X": 42},
+  "max_steps": 100,
+  "expected_exit_code": 0,
+  "expected_semantic_term": "id",
+  "expected_final_state": {"X": 42},
+  "expected_ast": {
+    "type": "Program",
+    "span": {"start_line": 1, "start_column": 1, "end_line": 3, "end_column": 4},
+    "body": {
+      "type": "SkipStmt",
+      "span": {"start_line": 2, "start_column": 5, "end_line": 2, "end_column": 9}
+    }
+  }
+}

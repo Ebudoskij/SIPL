@@ -1,0 +1,12 @@
+{
+  "id": "CONF-12",
+  "name": "runtime_error_uninitialized_variable",
+  "description": "Runtime error: evaluating an uninitialized variable in an arithmetic expression",
+  "category": "runtime_error",
+  "source": "begin\n    X := 10;\n    Y := X + UNDEF\nend",
+  "initial_state": {},
+  "max_steps": 100,
+  "expected_exit_code": 4,
+  "expected_error_type": "SIPLRuntimeError",
+  "expected_error_kind": "UninitializedVariableError"
+}
