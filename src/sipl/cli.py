@@ -31,6 +31,7 @@ from sipl.interpreter import (
     trace_program,
 )
 from sipl.parser import SIPLSyntaxError, parse_program
+from sipl.semantics import SemanticDerivationStep, build_semantic_term
 
 # Stable process exit codes (CORE-05)
 EXIT_OK: int = 0
@@ -269,6 +270,29 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Output execution trace in JSON format",
     )
 
+    # 5. sem (SEM-01)
+    p_sem = subparsers.add_parser(
+        "sem",
+        help="Construct the compositional semantic term of a SIPL program (SEM-01)",
+    )
+    p_sem.add_argument("file", help="Path to the .sipl source file")
+    p_sem.add_argument(
+        "--style",
+        choices=["course", "ascii", "latex"],
+        default="course",
+        help="Notation style for semantic term output (default: course)",
+    )
+    p_sem.add_argument(
+        "--derivation",
+        action="store_true",
+        help="Include step-by-step Table 1.1 derivation rules",
+    )
+    p_sem.add_argument(
+        "--json",
+        action="store_true",
+        help="Output semantic term in JSON format",
+    )
+
     return parser
 
 
@@ -327,6 +351,33 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
             )
         else:
             print(format_ast_text(program))
+        return EXIT_OK
+
+    if args.command == "sem":
+        derivation_steps: list[SemanticDerivationStep] = []
+        sem_term = build_semantic_term(program, derivation_log=derivation_steps)
+        rendered = sem_term.format(args.style)
+        if use_json:
+            payload: dict[str, Any] = {
+                "status": "ok",
+                "file": args.file,
+                "style": args.style,
+                "notation": rendered,
+                "term": sem_term.to_dict(),
+            }
+            if args.derivation:
+                payload["derivation"] = [s.to_dict() for s in derivation_steps]
+            _emit_json(payload)
+        else:
+            if args.derivation:
+                print("=== Semantic Term Derivation (Table 1.1) ===")
+                for idx, step in enumerate(derivation_steps, start=1):
+                    print(
+                        f"  {idx:02d}. [{step.rule_code} / {step.rule_name}] "
+                        f"{step.syntax_kind} => {step.result_notation}"
+                    )
+                print("\n=== Final Compositional Semantic Term ===")
+            print(rendered)
         return EXIT_OK
 
     # Commands requiring state and max_steps ('run' and 'trace')
