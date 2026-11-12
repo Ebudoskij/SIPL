@@ -1,0 +1,10 @@
+begin
+    begin
+        A := 12;
+        B := 4
+    end;
+    begin
+        Q := A / B;
+        R := A - Q * B
+    end
+end

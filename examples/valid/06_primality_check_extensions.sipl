@@ -1,0 +1,12 @@
+begin
+    I := 2;
+    R := 1;
+    while (M > I * I) || (M = I * I) do
+        if (M / I) * I = M then
+            begin
+                R := 0;
+                I := M
+            end
+        else
+            I := I + 1
+end
