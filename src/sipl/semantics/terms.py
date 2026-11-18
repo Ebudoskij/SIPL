@@ -51,9 +51,8 @@ def _overline_number(value: int) -> str:
     return "".join(ch + "\u0304" for ch in text)
 
 
-# ============================================================================
+
 # Semantic Term Hierarchy (Algebra A_SIPL)
-# ============================================================================
 
 
 @dataclass(frozen=True)
@@ -263,9 +262,9 @@ class LoopTerm(SemanticTerm):
         }
 
 
-# ============================================================================
+
 # Semantic Derivation Step Tracking (Table 1.1 rules)
-# ============================================================================
+
 
 
 @dataclass(frozen=True)
